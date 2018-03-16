@@ -1,0 +1,57 @@
+.PHONY: all get_deps comile xref eunit check_plt build_plt dialyzer doc callgraph graphviz clean distclean
+
+REBAR := ./rebar
+APPS = erts kernel stdlib sasl crypto compiler inets mnesia public_key runtime_tools snmp syntax_tools tools xmerl webtool ssl
+LIBS = deps/leo_commons/ebin deps/leo_rpc/ebin
+PLT_FILE = .leo_konsul_dialyzer_plt
+COMMON_PLT_FILE = .common_dialyzer_plt
+DOT_FILE = leo_konsul.dot
+CALL_GRAPH_FILE = leo_konsul.png
+
+all:
+	@$(REBAR) get-deps
+	$(SHELL) -c ./replace_otp_vsn.sh
+	@$(REBAR) compile
+	@$(REBAR) xref skip_deps=true
+	@$(REBAR) eunit suites=leo_cluster_tbl_member
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_info
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_member
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_mgr
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_stat
+	@$(REBAR) eunit suites=leo_konsul_ring
+	@$(REBAR) eunit suites=leo_konsul_api
+	@$(REBAR) eunit suites=leo_gb_trees
+compile:
+	$(SHELL) -c ./replace_otp_vsn.sh
+	@$(REBAR) compile
+xref:
+	@$(REBAR) xref skip_deps=true
+eunit:
+	@$(REBAR) eunit suites=leo_cluster_tbl_member
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_info
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_member
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_mgr
+	@$(REBAR) eunit suites=leo_mdcr_tbl_cluster_stat
+	@$(REBAR) eunit suites=leo_konsul_worker
+	@$(REBAR) eunit suites=leo_konsul_api
+	@$(REBAR) eunit suites=leo_gb_trees
+check_plt:
+	@$(REBAR) compile
+	dialyzer --check_plt --plt $(PLT_FILE) --apps $(APPS)
+build_plt:
+	@$(REBAR) compile
+	dialyzer --build_plt --output_plt $(PLT_FILE) --apps $(LIBS)
+dialyzer:
+	@$(REBAR) compile
+	dialyzer -Wno_return --plts $(PLT_FILE) $(COMMON_PLT_FILE) -r ebin/ --dump_callgraph $(DOT_FILE) -Wrace_conditions | fgrep -v -f ./dialyzer.ignore-warnings
+doc: compile
+	@$(REBAR) doc
+callgraph: graphviz
+	dot -Tpng -o$(CALL_GRAPH_FILE) $(DOT_FILE)
+graphviz:
+	$(if $(shell which dot),,$(error "To make the depgraph, you need graphviz installed"))
+clean:
+	@$(REBAR) clean
+distclean:
+	@$(REBAR) delete-deps
+	@$(REBAR) clean
