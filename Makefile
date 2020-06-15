@@ -10,7 +10,6 @@ CALL_GRAPH_FILE = leo_konsul.png
 
 all:
 	@$(REBAR) get-deps
-	$(SHELL) -c ./replace_otp_vsn.sh
 	@$(REBAR) compile
 	@$(REBAR) xref skip_deps=true
 	@$(REBAR) eunit suites=leo_cluster_tbl_member
@@ -22,7 +21,6 @@ all:
 	@$(REBAR) eunit suites=leo_konsul_api
 	@$(REBAR) eunit suites=leo_gb_trees
 compile:
-	$(SHELL) -c ./replace_otp_vsn.sh
 	@$(REBAR) compile
 xref:
 	@$(REBAR) xref skip_deps=true
